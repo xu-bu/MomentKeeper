@@ -90,6 +90,9 @@ fun MomentKeeperApp() {
                         stickers = stickers.map { 
                             it.copy(isSelected = it.id == id)
                         }
+                    },
+                    onDeleteSticker = { stickerId ->
+                        stickers = stickers.filterNot { it.id == stickerId }
                     }
                 )
 

@@ -15,7 +15,8 @@ fun CanvasView(
     stickers: List<Sticker>,
     onUpdateSticker: (Sticker) -> Unit,
     onCanvasClick: () -> Unit,
-    onSelectSticker: (String?) -> Unit
+    onSelectSticker: (String?) -> Unit,
+    onDeleteSticker: (String) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -31,7 +32,8 @@ fun CanvasView(
                 StickerView(
                     sticker = sticker,
                     onUpdateSticker = onUpdateSticker,
-                    onSelect = { onSelectSticker(sticker.id) }
+                    onSelect = { onSelectSticker(sticker.id) },
+                    onDelete = { onDeleteSticker(sticker.id) }
                 )
             }
         }

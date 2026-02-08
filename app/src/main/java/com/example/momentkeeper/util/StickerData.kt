@@ -8,12 +8,15 @@ object StickerData {
     val defaultStickers = listOf(
         Sticker(
             id = UUID.randomUUID().toString(),
-            drawableResId = R.drawable.ic_launcher_foreground // Using launcher icon as placeholder
+            drawableResId = R.drawable.ic_sticker_heart
         )
     )
     
     // In a real app, this would return a list of drawable resources for the container
     val availableStickerResIds = listOf(
+        R.drawable.ic_sticker_heart,
+        R.drawable.ic_sticker_star,
+        R.drawable.ic_sticker_sun,
         R.drawable.ic_launcher_foreground,
         R.drawable.ic_launcher_background
     )

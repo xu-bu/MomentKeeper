@@ -7,9 +7,10 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -24,11 +25,13 @@ import kotlin.math.roundToInt
 fun StickerView(
     sticker: Sticker,
     onUpdateSticker: (Sticker) -> Unit,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    onDelete: () -> Unit
 ) {
     // Use rememberUpdatedState to ensure the gesture detector always uses the latest sticker data
     // without restarting the pointerInput coroutine, which would break the ongoing gesture.
     val currentSticker by rememberUpdatedState(sticker)
+    var showMenu by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -39,7 +42,13 @@ fun StickerView(
                 )
             }
             .pointerInput(sticker.id) {
-                detectTapGestures(onTap = { onSelect() })
+                detectTapGestures(
+                    onTap = { onSelect() },
+                    onLongPress = {
+                        onSelect()
+                        showMenu = true
+                    }
+                )
             }
             .pointerInput(sticker.id) {
                 detectTransformGestures { _, pan, zoom, rotation ->
@@ -70,5 +79,18 @@ fun StickerView(
             contentDescription = null,
             modifier = Modifier.size(120.dp)
         )
+
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Delete") },
+                onClick = {
+                    onDelete()
+                    showMenu = false
+                }
+            )
+        }
     }
 }
