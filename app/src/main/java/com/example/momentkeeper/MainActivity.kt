@@ -116,7 +116,9 @@ fun MomentKeeperApp() {
                             val newSticker = Sticker(
                                 id = UUID.randomUUID().toString(),
                                 drawableResId = resId,
-                                position = Offset(200f, 400f)
+                                position = Offset(200f, 400f),
+                                isTextSticker = StickerData.isTextSticker(resId),
+                                text = if (StickerData.isTextSticker(resId)) "在这里写下点什么吧！" else ""
                             )
                             stickers = stickers + newSticker
                             isTopStickerVisible = false
@@ -138,7 +140,9 @@ fun MomentKeeperApp() {
                                 val newSticker = Sticker(
                                     id = UUID.randomUUID().toString(),
                                     drawableResId = resId,
-                                    position = dropLocalPos
+                                    position = dropLocalPos,
+                                    isTextSticker = StickerData.isTextSticker(resId),
+                                    text = if (StickerData.isTextSticker(resId)) "在这里写下点什么吧！" else ""
                                 )
                                 stickers = stickers + newSticker
                                 isTopStickerVisible = false
