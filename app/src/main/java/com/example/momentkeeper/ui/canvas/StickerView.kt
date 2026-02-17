@@ -1,6 +1,5 @@
 package com.example.momentkeeper.ui.canvas
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -11,16 +10,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.example.momentkeeper.model.Sticker
 import kotlin.math.roundToInt
 
@@ -33,8 +36,30 @@ fun StickerView(
 ) {
     val currentSticker by rememberUpdatedState(sticker)
     var showMenu by remember { mutableStateOf(false) }
-    var isEditing by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
+    
+    val focusRequester = remember { FocusRequester() }
+    var textFieldValue by remember { 
+        mutableStateOf(TextFieldValue(currentSticker.text)) 
+    }
+
+    // 同步外部文字变化到本地 TextFieldValue
+    LaunchedEffect(currentSticker.text) {
+        if (currentSticker.text != textFieldValue.text) {
+            textFieldValue = textFieldValue.copy(text = currentSticker.text)
+        }
+    }
+
+    // 关键逻辑：当进入编辑模式时，全选文字并获取焦点
+    LaunchedEffect(currentSticker.isEditing) {
+        if (currentSticker.isEditing) {
+            textFieldValue = textFieldValue.copy(
+                selection = TextRange(0, textFieldValue.text.length)
+            )
+            // 稍作延迟确保 TextField 已加载
+            focusRequester.requestFocus()
+        }
+    }
 
     val currentSize = currentSticker.baseSize * currentSticker.scale
 
@@ -57,7 +82,7 @@ fun StickerView(
                 )
             }
             .pointerInput(sticker.id) {
-                if (!isEditing) {
+                if (!currentSticker.isEditing) {
                     detectTransformGestures { _, pan, zoom, rotation ->
                         onUpdateSticker(
                             currentSticker.copy(
@@ -80,9 +105,9 @@ fun StickerView(
                 }
             )
     ) {
-        // 1. Background Image
-        Image(
-            painter = painterResource(id = currentSticker.drawableResId),
+        // 使用 Coil 的 AsyncImage 代替 Image，它支持 nullable 的 Any 来源 (Resource ID 或 Uri)
+        AsyncImage(
+            model = currentSticker.imageSource,
             contentDescription = null,
             modifier = Modifier.fillMaxSize()
         )
@@ -95,14 +120,16 @@ fun StickerView(
                     .padding(16.dp * currentSticker.scale),
                 contentAlignment = Alignment.Center
             ) {
-                // Font size is now fixed (or only changed via menu)
                 val fontSize = currentSticker.fontSize.sp
                 
-                if (isEditing) {
+                if (currentSticker.isEditing) {
                     BasicTextField(
-                        value = currentSticker.text,
-                        onValueChange = { newText ->
-                            onUpdateSticker(currentSticker.copy(text = newText))
+                        value = textFieldValue,
+                        onValueChange = { newValue ->
+                            textFieldValue = newValue
+                            if (newValue.text != currentSticker.text) {
+                                onUpdateSticker(currentSticker.copy(text = newValue.text))
+                            }
                         },
                         textStyle = TextStyle(
                             fontSize = fontSize,
@@ -110,7 +137,9 @@ fun StickerView(
                             textAlign = TextAlign.Center
                         ),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
                     )
                 } else {
                     Text(
@@ -131,9 +160,9 @@ fun StickerView(
         ) {
             if (currentSticker.isTextSticker) {
                 DropdownMenuItem(
-                    text = { Text(if (isEditing) "Finish Editing" else "Edit Text") },
+                    text = { Text(if (currentSticker.isEditing) "Finish Editing" else "Edit Text") },
                     onClick = {
-                        isEditing = !isEditing
+                        onUpdateSticker(currentSticker.copy(isEditing = !currentSticker.isEditing))
                         showMenu = false
                     }
                 )
@@ -175,7 +204,7 @@ fun StickerView(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { }) {
+                TextButton(onClick = {  }) {
                     Text("Cancel")
                 }
             }
