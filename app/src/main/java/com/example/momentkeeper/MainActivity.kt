@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,7 +85,6 @@ fun MomentKeeperApp() {
                         }
                     },
                     onCanvasClick = {
-                        scope.launch { drawerState.open() }
                     },
                     onSelectSticker = { id ->
                         selectedStickerId = id
@@ -96,7 +97,21 @@ fun MomentKeeperApp() {
                     }
                 )
 
-                // 2. The Add Button
+                // 2. Menu Button (Left Top)
+                IconButton(
+                    onClick = { scope.launch { drawerState.open() } },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Open Sidebar",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                // 3. The Add Button (Top Center)
                 Button(
                     onClick = { isTopStickerVisible = !isTopStickerVisible },
                     modifier = Modifier
@@ -106,7 +121,7 @@ fun MomentKeeperApp() {
                     Text(if (isTopStickerVisible) "Close Stickers" else "Add Sticker")
                 }
 
-                // 3. The Sticker Picker
+                // 4. The Sticker Picker
                 if (isTopStickerVisible) {
                     StickerContainer(
                         modifier = Modifier
@@ -153,8 +168,7 @@ fun MomentKeeperApp() {
                     )
                 }
 
-                // 4. Dragging Overlay (Visual feedback while dragging)
-                // This must be at the end to stay on top of everything.
+                // 5. Dragging Overlay
                 draggingStickerResId?.let { resId ->
                     val stickerSize = 120.dp
                     val stickerSizePx = with(density) { (stickerSize / 2).toPx() }
