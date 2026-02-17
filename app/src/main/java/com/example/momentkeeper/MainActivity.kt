@@ -59,6 +59,7 @@ fun MomentKeeperApp() {
     // UI state
     var isTopStickerVisible by remember { mutableStateOf(false) }
     var stickers by remember { mutableStateOf(emptyList<Sticker>()) }
+    var customStickerPaths by remember { mutableStateOf(emptyList<String>()) }
 
     // Drag and drop state
     var draggingStickerResId by remember { mutableStateOf<Int?>(null) }
@@ -67,6 +68,19 @@ fun MomentKeeperApp() {
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val density = LocalDensity.current
+
+    // 加载已保存的自定义贴纸文件列表
+    LaunchedEffect(context) {
+        val directory = File(context.filesDir, "custom_stickers")
+        if (directory.exists()) {
+            val files = directory.listFiles()
+            if (files != null) {
+                customStickerPaths = files
+                    .filter { it.isFile }
+                    .map { it.absolutePath }
+            }
+        }
+    }
 
     // 图片选择器启动器
     val pickMedia = rememberLauncherForActivityResult(
@@ -83,7 +97,8 @@ fun MomentKeeperApp() {
                         position = Offset(200f, 400f),
                         isSelected = true
                     )
-                    selectedStickerId = newId
+                    // 将用户上传的贴纸路径加入可选贴纸列表中
+                    customStickerPaths = (customStickerPaths + localPath).distinct()
                     stickers = stickers.map { it.copy(isSelected = false, isEditing = false) } + newSticker
                     isTopStickerVisible = false
                 }
@@ -146,7 +161,6 @@ fun MomentKeeperApp() {
                         isTopStickerVisible = false
                     },
                     onSelectSticker = { id ->
-                        selectedStickerId = id
                         stickers = stickers.map { 
                             it.copy(
                                 isSelected = it.id == id,
@@ -165,6 +179,7 @@ fun MomentKeeperApp() {
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .padding(top = 8.dp),
+                        customStickerPaths = customStickerPaths,
                         onStickerSelected = { resId ->
                             val isText = StickerData.isTextSticker(resId)
                             val newId = UUID.randomUUID().toString()
@@ -177,7 +192,17 @@ fun MomentKeeperApp() {
                                 isSelected = true,
                                 isEditing = isText
                             )
-                            selectedStickerId = newId
+                            stickers = stickers.map { it.copy(isSelected = false, isEditing = false) } + newSticker
+                            isTopStickerVisible = false
+                        },
+                        onCustomStickerSelected = { path ->
+                            val newId = UUID.randomUUID().toString()
+                            val newSticker = Sticker(
+                                id = newId,
+                                localUri = path,
+                                position = Offset(200f, 400f),
+                                isSelected = true
+                            )
                             stickers = stickers.map { it.copy(isSelected = false, isEditing = false) } + newSticker
                             isTopStickerVisible = false
                         },
@@ -207,7 +232,6 @@ fun MomentKeeperApp() {
                                     isSelected = true,
                                     isEditing = isText
                                 )
-                                selectedStickerId = newId
                                 stickers = stickers.map { it.copy(isSelected = false, isEditing = false) } + newSticker
                                 isTopStickerVisible = false
                             }
