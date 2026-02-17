@@ -7,9 +7,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +34,9 @@ fun StickerView(
     val currentSticker by rememberUpdatedState(sticker)
     var showMenu by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
+    var showFontSizeDialog by remember { mutableStateOf(false) }
+
+    val currentSize = currentSticker.baseSize * currentSticker.scale
 
     Box(
         modifier = Modifier
@@ -45,6 +46,7 @@ fun StickerView(
                     currentSticker.position.y.roundToInt()
                 )
             }
+            .size(currentSize)
             .pointerInput(sticker.id) {
                 detectTapGestures(
                     onTap = { onSelect() },
@@ -55,7 +57,7 @@ fun StickerView(
                 )
             }
             .pointerInput(sticker.id) {
-                if (!isEditing) { // 编辑时不响应拖动，方便选文字
+                if (!isEditing) {
                     detectTransformGestures { _, pan, zoom, rotation ->
                         onUpdateSticker(
                             currentSticker.copy(
@@ -68,8 +70,6 @@ fun StickerView(
                 }
             }
             .graphicsLayer(
-                scaleX = currentSticker.scale,
-                scaleY = currentSticker.scale,
                 rotationZ = currentSticker.rotation
             )
             .then(
@@ -84,28 +84,28 @@ fun StickerView(
         Image(
             painter = painterResource(id = currentSticker.drawableResId),
             contentDescription = null,
-            modifier = Modifier.size(120.dp)
+            modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Text Content (Only for Text Stickers)
+        // 2. Text Content
         if (currentSticker.isTextSticker) {
             Box(
                 modifier = Modifier
-                    .size(120.dp)
-                    .padding(16.dp), // 留出一点边距
+                    .fillMaxSize()
+                    .padding(16.dp * currentSticker.scale),
                 contentAlignment = Alignment.Center
             ) {
+                // Font size is now fixed (or only changed via menu)
+                val fontSize = currentSticker.fontSize.sp
+                
                 if (isEditing) {
                     BasicTextField(
                         value = currentSticker.text,
                         onValueChange = { newText ->
-                            // 简单的限制逻辑：基于字符长度（后期可改为基于布局大小）
-                            if (newText.length <= 50) {
-                                onUpdateSticker(currentSticker.copy(text = newText))
-                            }
+                            onUpdateSticker(currentSticker.copy(text = newText))
                         },
                         textStyle = TextStyle(
-                            fontSize = 14.sp,
+                            fontSize = fontSize,
                             color = Color.Black,
                             textAlign = TextAlign.Center
                         ),
@@ -115,7 +115,7 @@ fun StickerView(
                 } else {
                     Text(
                         text = currentSticker.text,
-                        fontSize = 14.sp,
+                        fontSize = fontSize,
                         color = Color.Black,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -137,6 +137,13 @@ fun StickerView(
                         showMenu = false
                     }
                 )
+                DropdownMenuItem(
+                    text = { Text("Change Font Size") },
+                    onClick = {
+                        showFontSizeDialog = true
+                        showMenu = false
+                    }
+                )
             }
             DropdownMenuItem(
                 text = { Text("Delete") },
@@ -146,5 +153,32 @@ fun StickerView(
                 }
             )
         }
+    }
+
+    // Font Size Selection Dialog
+    if (showFontSizeDialog) {
+        AlertDialog(
+            onDismissRequest = {  },
+            title = { Text("Select Font Size") },
+            text = {
+                Column {
+                    listOf(12f, 14f, 18f, 22f, 26f, 30f).forEach { size ->
+                        TextButton(
+                            onClick = {
+                                onUpdateSticker(currentSticker.copy(fontSize = size))
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("${size.toInt()} sp", fontSize = size.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

@@ -1,6 +1,8 @@
 package com.example.momentkeeper.model
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 data class Sticker(
     val id: String,
@@ -9,6 +11,8 @@ data class Sticker(
     val scale: Float = 1f,
     val rotation: Float = 0f,
     val isSelected: Boolean = false,
-    val text: String = "", // 新增：贴纸上的文字内容
-    val isTextSticker: Boolean = false // 新增：标识是否为可写字的贴纸
+    val text: String = "",
+    val isTextSticker: Boolean = false,
+    val baseSize: Dp = 120.dp,
+    val fontSize: Float = 14f // Add fontSize, default to 14f
 )

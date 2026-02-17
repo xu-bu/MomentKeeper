@@ -46,8 +46,7 @@ fun MomentKeeperApp() {
     // UI state
     var isTopStickerVisible by remember { mutableStateOf(false) }
     var stickers by remember { mutableStateOf(StickerData.defaultStickers) }
-    var selectedStickerId by remember { mutableStateOf<String?>(null) }
-    
+
     // Drag and drop state
     var draggingStickerResId by remember { mutableStateOf<Int?>(null) }
     var draggingPosition by remember { mutableStateOf(Offset.Zero) }
@@ -87,8 +86,7 @@ fun MomentKeeperApp() {
                     onCanvasClick = {
                     },
                     onSelectSticker = { id ->
-                        selectedStickerId = id
-                        stickers = stickers.map { 
+                        stickers = stickers.map {
                             it.copy(isSelected = it.id == id)
                         }
                     },
