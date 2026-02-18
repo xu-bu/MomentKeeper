@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -84,6 +85,7 @@ fun MomentKeeperApp() {
 
     val sidebarState = rememberDrawerState(DrawerValue.Closed)
     val density = LocalDensity.current
+    val focusManager = LocalFocusManager.current
 
     // 保存成功动画：短暂显示勾选图标
     var saveJustCompleted by remember { mutableStateOf(false) }
@@ -94,9 +96,10 @@ fun MomentKeeperApp() {
         }
     }
 
-    // 打开侧边栏时刷新已保存列表
+    // 打开侧边栏时刷新已保存列表；关闭时退出编辑（清除焦点）
     LaunchedEffect(sidebarState.isOpen) {
         if (sidebarState.isOpen) savedJournals = journalRepo.getAll().sortedByDescending { it.updatedAt }
+        else focusManager.clearFocus()
     }
 
     // Drag and drop state
@@ -157,6 +160,7 @@ fun MomentKeeperApp() {
                     eventDescription = journalEvent,
                     onEventChange = { journalEvent = it },
                     savedJournals = savedJournals,
+                    onDismissFocus = { focusManager.clearFocus() },
                     onSelectJournal = { journal ->
                         currentJournalId = journal.id
                         journalTitle = journal.title
@@ -174,13 +178,19 @@ fun MomentKeeperApp() {
                 CenterAlignedTopAppBar(
                     title = {
                         Button(
-                            onClick = { isTopStickerVisible = !isTopStickerVisible }
+                            onClick = {
+                                focusManager.clearFocus()
+                                isTopStickerVisible = !isTopStickerVisible
+                            }
                         ) {
                             Text(if (isTopStickerVisible) "Close Stickers" else "Add Sticker")
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { sidebarState.open() } }) {
+                        IconButton(onClick = {
+                            focusManager.clearFocus()
+                            scope.launch { sidebarState.open() }
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
                                 contentDescription = "Open Sidebar",
@@ -200,6 +210,7 @@ fun MomentKeeperApp() {
                         )
                         IconButton(
                             onClick = {
+                                focusManager.clearFocus()
                                 scope.launch {
                                     val id = currentJournalId ?: UUID.randomUUID().toString()
                                     val journal = Journal(
@@ -252,6 +263,7 @@ fun MomentKeeperApp() {
                         }
                     },
                     onCanvasClick = {
+                        focusManager.clearFocus()
                         isTopStickerVisible = false
                     },
                     onSelectSticker = { id ->

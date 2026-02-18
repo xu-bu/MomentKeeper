@@ -20,7 +20,8 @@ fun InfoSidebar(
     eventDescription: String,
     onEventChange: (String) -> Unit,
     savedJournals: List<Journal>,
-    onSelectJournal: (Journal) -> Unit
+    onSelectJournal: (Journal) -> Unit,
+    onDismissFocus: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -31,7 +32,9 @@ fun InfoSidebar(
         Text(
             text = "Journal Info",
             style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier
+                .clickable { onDismissFocus() }
+                .padding(bottom = 16.dp)
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -89,14 +92,18 @@ fun InfoSidebar(
         Text(
             text = "已保存的手帐",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier
+                .clickable { onDismissFocus() }
+                .padding(bottom = 8.dp)
         )
         if (savedJournals.isEmpty()) {
             Text(
                 text = "暂无保存的手帐，点击右上角保存当前手帐。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier
+                    .clickable { onDismissFocus() }
+                    .padding(vertical = 8.dp)
             )
         } else {
             LazyColumn(
