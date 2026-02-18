@@ -15,6 +15,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Save
@@ -199,6 +200,23 @@ fun MomentKeeperApp() {
                         }
                     },
                     actions = {
+                        // 新建手帐：丢弃当前未保存内容，开始空白手帐
+                        IconButton(
+                            onClick = {
+                                focusManager.clearFocus()
+                                currentJournalId = null
+                                journalTitle = "我的手帐"
+                                journalDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                                journalEvent = ""
+                                stickers = emptyList()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "新建手帐",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                         // 保存按钮：点击保存手帐，并播放短暂“已保存”动画
                         val showCheck = saveJustCompleted
                         val scale by animateFloatAsState(
