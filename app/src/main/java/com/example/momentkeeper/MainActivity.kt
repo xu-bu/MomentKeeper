@@ -11,8 +11,13 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +31,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.example.momentkeeper.data.JournalRepository
+import com.example.momentkeeper.model.Journal
 import com.example.momentkeeper.model.Sticker
+import com.example.momentkeeper.model.StickerSnapshot
 import com.example.momentkeeper.ui.canvas.CanvasView
 import com.example.momentkeeper.ui.sidebar.InfoSidebar
 import com.example.momentkeeper.ui.sticker.StickerContainer
@@ -36,6 +44,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
 
@@ -61,13 +72,37 @@ fun MomentKeeperApp() {
     var stickers by remember { mutableStateOf(emptyList<Sticker>()) }
     var customStickerPaths by remember { mutableStateOf(emptyList<String>()) }
 
+    // 当前手帐信息（侧边栏编辑 + 保存用）
+    var currentJournalId by remember { mutableStateOf<String?>(null) }
+    var journalTitle by remember { mutableStateOf("我的手帐") }
+    var journalDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())) }
+    var journalEvent by remember { mutableStateOf("") }
+
+    // 已保存手帐列表（侧边栏展示，保存后刷新）
+    var savedJournals by remember { mutableStateOf(emptyList<Journal>()) }
+    val journalRepo = remember { JournalRepository(context) }
+
+    val sidebarState = rememberDrawerState(DrawerValue.Closed)
+    val density = LocalDensity.current
+
+    // 保存成功动画：短暂显示勾选图标
+    var saveJustCompleted by remember { mutableStateOf(false) }
+    LaunchedEffect(saveJustCompleted) {
+        if (saveJustCompleted) {
+            kotlinx.coroutines.delay(1200)
+            saveJustCompleted = false
+        }
+    }
+
+    // 打开侧边栏时刷新已保存列表
+    LaunchedEffect(sidebarState.isOpen) {
+        if (sidebarState.isOpen) savedJournals = journalRepo.getAll().sortedByDescending { it.updatedAt }
+    }
+
     // Drag and drop state
     var draggingStickerResId by remember { mutableStateOf<Int?>(null) }
     var draggingPosition by remember { mutableStateOf(Offset.Zero) }
     var rootBoxPositionInWindow by remember { mutableStateOf(Offset.Zero) }
-
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val density = LocalDensity.current
 
     // 加载已保存的自定义贴纸文件列表
     LaunchedEffect(context) {
@@ -106,14 +141,32 @@ fun MomentKeeperApp() {
         }
     }
 
-    BackHandler(enabled = drawerState.isOpen) {
-        scope.launch { drawerState.close() }
+    BackHandler(enabled = sidebarState.isOpen) {
+        scope.launch { sidebarState.close() }
     }
 
     ModalNavigationDrawer(
-        drawerState = drawerState,
+        drawerState = sidebarState,
         drawerContent = {
-            ModalDrawerSheet { InfoSidebar() }
+            ModalDrawerSheet {
+                InfoSidebar(
+                    title = journalTitle,
+                    onTitleChange = { journalTitle = it },
+                    date = journalDate,
+                    onDateChange = { journalDate = it },
+                    eventDescription = journalEvent,
+                    onEventChange = { journalEvent = it },
+                    savedJournals = savedJournals,
+                    onSelectJournal = { journal ->
+                        currentJournalId = journal.id
+                        journalTitle = journal.title
+                        journalDate = journal.date
+                        journalEvent = journal.eventDescription
+                        stickers = journal.stickers.map { it.toSticker() }
+                        scope.launch { sidebarState.close() }
+                    }
+                )
+            }
         }
     ) {
         Scaffold(
@@ -127,11 +180,52 @@ fun MomentKeeperApp() {
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        IconButton(onClick = { scope.launch { sidebarState.open() } }) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
                                 contentDescription = "Open Sidebar",
                                 tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    actions = {
+                        // 保存按钮：点击保存手帐，并播放短暂“已保存”动画
+                        val showCheck = saveJustCompleted
+                        val scale by animateFloatAsState(
+                            targetValue = if (showCheck) 1.2f else 1f,
+                            animationSpec = tween(200), label = "saveScale"
+                        )
+                        val alpha by animateFloatAsState(
+                            targetValue = if (showCheck) 1f else 0.9f, label = "saveAlpha"
+                        )
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    val id = currentJournalId ?: UUID.randomUUID().toString()
+                                    val journal = Journal(
+                                        id = id,
+                                        title = journalTitle,
+                                        date = journalDate,
+                                        eventDescription = journalEvent,
+                                        stickers = stickers.map { StickerSnapshot.fromSticker(it) },
+                                        updatedAt = System.currentTimeMillis()
+                                    )
+                                    withContext(Dispatchers.IO) { journalRepo.save(journal) }
+                                    currentJournalId = id
+                                    savedJournals = journalRepo.getAll().sortedByDescending { it.updatedAt }
+                                    saveJustCompleted = true
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (showCheck) Icons.Default.Check else Icons.Default.Save,
+                                contentDescription = if (showCheck) "已保存" else "保存手帐",
+                                modifier = Modifier.graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                    this.alpha = alpha
+                                },
+                                tint = if (showCheck) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
