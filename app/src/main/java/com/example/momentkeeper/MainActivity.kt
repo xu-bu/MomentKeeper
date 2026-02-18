@@ -161,6 +161,17 @@ fun MomentKeeperApp() {
                     eventDescription = journalEvent,
                     onEventChange = { journalEvent = it },
                     savedJournals = savedJournals,
+                    onDeleteJournal = { journal ->
+                        journalRepo.delete(journal.id)
+                        savedJournals = journalRepo.getAll().sortedByDescending { it.updatedAt }
+                        if (currentJournalId == journal.id) {
+                            currentJournalId = null
+                            journalTitle = "我的手帐"
+                            journalDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                            journalEvent = ""
+                            stickers = emptyList()
+                        }
+                    },
                     onDismissFocus = { focusManager.clearFocus() },
                     onSelectJournal = { journal ->
                         currentJournalId = journal.id

@@ -40,4 +40,10 @@ class JournalRepository(context: Context) {
     }
 
     fun getById(id: String): Journal? = getAll().find { it.id == id }
+
+    /** 删除指定 id 的手帐 */
+    fun delete(id: String) {
+        val list = getAll().filter { it.id != id }
+        prefs.edit().putString(KEY_JOURNALS, gson.toJson(list)).apply()
+    }
 }

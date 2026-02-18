@@ -45,7 +45,7 @@ fun StickerContainer(
     Card(
         modifier = modifier
             .fillMaxWidth(0.9f)
-            .height(240.dp),
+            .height(245.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(

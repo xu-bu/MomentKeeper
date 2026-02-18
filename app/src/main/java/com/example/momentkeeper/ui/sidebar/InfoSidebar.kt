@@ -1,13 +1,17 @@
 package com.example.momentkeeper.ui.sidebar
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.example.momentkeeper.model.Journal
 
@@ -21,6 +25,7 @@ fun InfoSidebar(
     onEventChange: (String) -> Unit,
     savedJournals: List<Journal>,
     onSelectJournal: (Journal) -> Unit,
+    onDeleteJournal: (Journal) -> Unit = {},
     onDismissFocus: () -> Unit = {}
 ) {
     Column(
@@ -111,24 +116,47 @@ fun InfoSidebar(
                 modifier = Modifier.weight(1f, fill = true)
             ) {
                 items(savedJournals) { journal ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelectJournal(journal) },
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp)
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onTap = { onSelectJournal(journal) },
+                                        onLongPress = { menuExpanded = true }
+                                    )
+                                },
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Text(
-                                text = journal.title.ifEmpty { "未命名手帐" },
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Text(
-                                text = journal.date,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = journal.title.ifEmpty { "未命名手帐" },
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = journal.date,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("删除") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Delete, contentDescription = null)
+                                },
+                                onClick = {
+                                    onDeleteJournal(journal)
+                                    menuExpanded = false
+                                }
                             )
                         }
                     }
