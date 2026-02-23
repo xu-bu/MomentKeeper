@@ -43,7 +43,9 @@ fun StickerView(
 ) {
     val currentSticker by rememberUpdatedState(sticker)
     var showMenu by remember { mutableStateOf(false) }
-    var showFontSizeDialog by remember { mutableStateOf(false) }
+    
+    // 使用 MutableState 直观操作，避免委托属性的 Lint 误报
+    val showFontSizeDialog = remember { mutableStateOf(false) }
     
     val focusRequester = remember { FocusRequester() }
     var textFieldValue by remember { 
@@ -112,7 +114,7 @@ fun StickerView(
                 }
             )
     ) {
-        // 贴纸图片内容
+        // 1. 贴纸内容
         when (val resId = currentSticker.drawableResId) {
             null -> AsyncImage(
                 model = currentSticker.localUri,
@@ -121,9 +123,6 @@ fun StickerView(
             )
             else -> {
                 val context = LocalContext.current
-                
-                // 修改点：如果是文字贴纸（如日记线），直接显示原图，不剔除背景。
-                // 这样可以保留原本较浅的线条背景。
                 if (currentSticker.isTextSticker) {
                     Image(
                         painter = painterResource(id = resId),
@@ -131,7 +130,6 @@ fun StickerView(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    // 普通图形贴纸：去除 PNG 中的白色/灰背景
                     var strippedBitmap by remember(resId) { mutableStateOf<ImageBitmap?>(null) }
                     LaunchedEffect(resId) {
                         strippedBitmap = withContext(Dispatchers.Default) {
@@ -155,7 +153,7 @@ fun StickerView(
             }
         }
 
-        // 2. Text Content
+        // 2. 文字编辑层
         if (currentSticker.isTextSticker) {
             Box(
                 modifier = Modifier
@@ -196,7 +194,7 @@ fun StickerView(
             }
         }
 
-        // 3. Context Menu
+        // 3. 右键/长按菜单
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false }
@@ -212,7 +210,7 @@ fun StickerView(
                 DropdownMenuItem(
                     text = { Text("Change Font Size") },
                     onClick = {
-                        showFontSizeDialog = true
+                        showFontSizeDialog.value = true
                         showMenu = false
                     }
                 )
@@ -227,10 +225,10 @@ fun StickerView(
         }
     }
 
-    // Font Size Selection Dialog
-    if (showFontSizeDialog) {
+    // 字体大小选择对话框
+    if (showFontSizeDialog.value) {
         AlertDialog(
-            onDismissRequest = {  },
+            onDismissRequest = { showFontSizeDialog.value = false },
             title = { Text("Select Font Size") },
             text = {
                 Column {
@@ -238,6 +236,7 @@ fun StickerView(
                         TextButton(
                             onClick = {
                                 onUpdateSticker(currentSticker.copy(fontSize = size))
+                                showFontSizeDialog.value = false
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -247,7 +246,7 @@ fun StickerView(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {  }) {
+                TextButton(onClick = { showFontSizeDialog.value = false }) {
                     Text("Cancel")
                 }
             }
