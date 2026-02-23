@@ -112,7 +112,7 @@ fun StickerView(
                 }
             )
     ) {
-        // 内置贴纸：去除 PNG 中的白色/灰背景后显示；自定义 Uri 贴纸用 Coil
+        // 贴纸图片内容
         when (val resId = currentSticker.drawableResId) {
             null -> AsyncImage(
                 model = currentSticker.localUri,
@@ -121,24 +121,36 @@ fun StickerView(
             )
             else -> {
                 val context = LocalContext.current
-                var strippedBitmap by remember(resId) { mutableStateOf<ImageBitmap?>(null) }
-                LaunchedEffect(resId) {
-                    strippedBitmap = withContext(Dispatchers.Default) {
-                        stripDrawableBackground(resId, context.resources)
-                    }
-                }
-                if (strippedBitmap != null) {
-                    Image(
-                        bitmap = strippedBitmap!!,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
+                
+                // 修改点：如果是文字贴纸（如日记线），直接显示原图，不剔除背景。
+                // 这样可以保留原本较浅的线条背景。
+                if (currentSticker.isTextSticker) {
                     Image(
                         painter = painterResource(id = resId),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize()
                     )
+                } else {
+                    // 普通图形贴纸：去除 PNG 中的白色/灰背景
+                    var strippedBitmap by remember(resId) { mutableStateOf<ImageBitmap?>(null) }
+                    LaunchedEffect(resId) {
+                        strippedBitmap = withContext(Dispatchers.Default) {
+                            stripDrawableBackground(resId, context.resources)
+                        }
+                    }
+                    if (strippedBitmap != null) {
+                        Image(
+                            bitmap = strippedBitmap!!,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = resId),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
