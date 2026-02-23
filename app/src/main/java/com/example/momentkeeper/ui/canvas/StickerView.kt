@@ -1,5 +1,6 @@
 package com.example.momentkeeper.ui.canvas
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -13,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextRange
@@ -20,11 +22,16 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import coil3.compose.AsyncImage
 import com.example.momentkeeper.model.Sticker
+import com.example.momentkeeper.util.stripDrawableBackground
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 @Composable
@@ -105,12 +112,36 @@ fun StickerView(
                 }
             )
     ) {
-        // 使用 Coil 的 AsyncImage 代替 Image，它支持 nullable 的 Any 来源 (Resource ID 或 Uri)
-        AsyncImage(
-            model = currentSticker.imageSource,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize()
-        )
+        // 内置贴纸：去除 PNG 中的白色/灰背景后显示；自定义 Uri 贴纸用 Coil
+        when (val resId = currentSticker.drawableResId) {
+            null -> AsyncImage(
+                model = currentSticker.localUri,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize()
+            )
+            else -> {
+                val context = LocalContext.current
+                var strippedBitmap by remember(resId) { mutableStateOf<ImageBitmap?>(null) }
+                LaunchedEffect(resId) {
+                    strippedBitmap = withContext(Dispatchers.Default) {
+                        stripDrawableBackground(resId, context.resources)
+                    }
+                }
+                if (strippedBitmap != null) {
+                    Image(
+                        bitmap = strippedBitmap!!,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = resId),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
 
         // 2. Text Content
         if (currentSticker.isTextSticker) {
